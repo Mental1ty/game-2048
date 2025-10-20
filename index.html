@@ -4,17 +4,680 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2048 Бесконечная</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            touch-action: manipulation;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        .score-container, .best-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            flex: 1;
+        }
+        
+        .score, .best {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .game-instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .game-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px;
+        }
+        
+        .grid-cell {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .tile {
+            position: absolute;
+            width: calc(20% - 14px);
+            height: calc(20% - 14px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.15s ease;
+            z-index: 10;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            background: #4e54c8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            flex: 1;
+        }
+        
+        button:hover {
+            background: #6a70e0;
+        }
+        
+        .controls-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .swipe-controls {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 200px;
+            height: 200px;
+        }
+        
+        .swipe-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .swipe-up { grid-column: 2; grid-row: 1; }
+        .swipe-left { grid-column: 1; grid-row: 2; }
+        .swipe-right { grid-column: 3; grid-row: 2; }
+        .swipe-down { grid-column: 2; grid-row: 3; }
+        
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 36px;
+            }
+            
+            .tile {
+                font-size: 18px;
+                width: calc(20% - 12px);
+                height: calc(20% - 12px);
+            }
+            
+            .swipe-controls {
+                display: grid;
+            }
+        }
+        
+        @media (max-height: 700px) {
+            .container {
+                transform: scale(0.9);
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Тот же код игры, что я предоставлял ранее -->
     <div class="container">
         <h1>2048 (5x5)</h1>
-        <div class="game-info">...</div>
-        <div class="game-container">...</div>
-        <div class="controls">...</div>
+        
+        <div class="game-info">
+            <div class="score-container">
+                <div>Счет</div>
+                <div class="score">0</div>
+            </div>
+            <div class="best-container">
+                <div>Лучший</div>
+                <div class="best">0</div>
+            </div>
+        </div>
+        
+        <div class="game-instructions">
+            Используйте стрелки или WASD для перемещения блоков. Блоки сливаются при соприкосновении одинаковых чисел!
+        </div>
+        
+        <div class="game-container">
+            <div class="grid">
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+            <div class="tiles-container"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="restart-button">Новая игра</button>
+        </div>
+        
+        <div class="swipe-controls">
+            <button class="swipe-btn swipe-up">↑</button>
+            <button class="swipe-btn swipe-left">←</button>
+            <button class="swipe-btn swipe-right">→</button>
+            <button class="swipe-btn swipe-down">↓</button>
+        </div>
+        
+        <div class="controls-info">
+            Управление: Стрелки или WASD (W-вверх, A-влево, S-вниз, D-вправо)
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gridSize = 5;
+            const tilesContainer = document.querySelector('.tiles-container');
+            const scoreDisplay = document.querySelector('.score');
+            const bestDisplay = document.querySelector('.best');
+            const restartButton = document.getElementById('restart-button');
+            
+            // Swipe controls
+            const swipeUp = document.querySelector('.swipe-up');
+            const swipeDown = document.querySelector('.swipe-down');
+            const swipeLeft = document.querySelector('.swipe-left');
+            const swipeRight = document.querySelector('.swipe-right');
+            
+            let board = [];
+            let score = 0;
+            let bestScore = localStorage.getItem('bestScore2048') || 0;
+            let gameOver = false;
+            let touchStartX = null;
+            let touchStartY = null;
+            
+            // Цвета для блоков
+            const tileColors = {
+                2: '#eee4da',
+                4: '#ede0c8',
+                8: '#f2b179',
+                16: '#f59563',
+                32: '#f67c5f',
+                64: '#f65e3b',
+                128: '#edcf72',
+                256: '#edcc61',
+                512: '#edc850',
+                1024: '#edc53f',
+                2048: '#edc22e'
+            };
+            
+            // Инициализация игры
+            function initGame() {
+                // Создаем пустую доску 5x5
+                board = [];
+                for (let i = 0; i < gridSize; i++) {
+                    board.push(Array(gridSize).fill(0));
+                }
+                
+                score = 0;
+                gameOver = false;
+                updateScore();
+                bestDisplay.textContent = bestScore;
+                
+                // Очистка доски
+                const tiles = document.querySelectorAll('.tile');
+                tiles.forEach(tile => tile.remove());
+                
+                // Добавление двух начальных плиток
+                addRandomTile();
+                addRandomTile();
+                
+                renderBoard();
+            }
+            
+            // Добавление случайной плитки
+            function addRandomTile() {
+                const emptyCells = [];
+                
+                // Поиск всех пустых ячеек
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        if (board[row][col] === 0) {
+                            emptyCells.push({ row, col });
+                        }
+                    }
+                }
+                
+                if (emptyCells.length > 0) {
+                    // Выбор случайной пустой ячейки
+                    const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    
+                    // С вероятностью 90% добавляем 2, с вероятностью 10% - 4
+                    board[randomCell.row][randomCell.col] = Math.random() < 0.9 ? 2 : 4;
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            // Отрисовка доски
+            function renderBoard() {
+                // Удаление всех плиток
+                const tiles = document.querySelectorAll('.tile');
+                tiles.forEach(tile => tile.remove());
+                
+                // Создание новых плиток
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const value = board[row][col];
+                        
+                        if (value !== 0) {
+                            const tile = document.createElement('div');
+                            tile.className = 'tile';
+                            tile.textContent = value;
+                            
+                            // Установка цвета плитки
+                            if (value <= 2048 && tileColors[value]) {
+                                tile.style.backgroundColor = tileColors[value];
+                                tile.style.color = value > 4 ? '#f9f6f2' : '#776e65';
+                            } else {
+                                // Для значений больше 2048 используем градиент
+                                const hue = (value * 10) % 360;
+                                tile.style.background = `linear-gradient(135deg, hsl(${hue}, 70%, 60%), hsl(${hue + 30}, 70%, 50%))`;
+                                tile.style.color = '#f9f6f2';
+                            }
+                            
+                            // Позиционирование плитки с правильными отступами
+                            const left = col * (100 / gridSize) + 7;
+                            const top = row * (100 / gridSize) + 7;
+                            tile.style.left = `${left}%`;
+                            tile.style.top = `${top}%`;
+                            
+                            tilesContainer.appendChild(tile);
+                        }
+                    }
+                }
+            }
+            
+            // Обновление счета
+            function updateScore() {
+                scoreDisplay.textContent = score;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestDisplay.textContent = bestScore;
+                    localStorage.setItem('bestScore2048', bestScore);
+                }
+            }
+            
+            // Движение плиток
+            function move(direction) {
+                if (gameOver) return false;
+                
+                let moved = false;
+                const oldBoard = JSON.parse(JSON.stringify(board));
+                
+                // В зависимости от направления движения
+                switch (direction) {
+                    case 'up':
+                        moved = moveUp();
+                        break;
+                    case 'down':
+                        moved = moveDown();
+                        break;
+                    case 'left':
+                        moved = moveLeft();
+                        break;
+                    case 'right':
+                        moved = moveRight();
+                        break;
+                }
+                
+                // Если движение произошло, добавляем новую плитку и обновляем доску
+                if (moved) {
+                    addRandomTile();
+                    renderBoard();
+                    
+                    // Проверка на окончание игры
+                    if (isGameOver()) {
+                        setTimeout(() => {
+                            alert(`Игра окончена! Ваш счет: ${score}`);
+                            gameOver = true;
+                        }, 300);
+                    }
+                }
+                
+                return moved;
+            }
+            
+            // Движение вверх
+            function moveUp() {
+                let moved = false;
+                
+                for (let col = 0; col < gridSize; col++) {
+                    for (let row = 1; row < gridSize; row++) {
+                        if (board[row][col] !== 0) {
+                            let currentRow = row;
+                            
+                            // Перемещение вверх
+                            while (currentRow > 0 && board[currentRow - 1][col] === 0) {
+                                board[currentRow - 1][col] = board[currentRow][col];
+                                board[currentRow][col] = 0;
+                                currentRow--;
+                                moved = true;
+                            }
+                            
+                            // Слияние
+                            if (currentRow > 0 && board[currentRow - 1][col] === board[currentRow][col]) {
+                                board[currentRow - 1][col] *= 2;
+                                score += board[currentRow - 1][col];
+                                board[currentRow][col] = 0;
+                                moved = true;
+                                updateScore();
+                            }
+                        }
+                    }
+                }
+                
+                return moved;
+            }
+            
+            // Движение вниз
+            function moveDown() {
+                let moved = false;
+                
+                for (let col = 0; col < gridSize; col++) {
+                    for (let row = gridSize - 2; row >= 0; row--) {
+                        if (board[row][col] !== 0) {
+                            let currentRow = row;
+                            
+                            // Перемещение вниз
+                            while (currentRow < gridSize - 1 && board[currentRow + 1][col] === 0) {
+                                board[currentRow + 1][col] = board[currentRow][col];
+                                board[currentRow][col] = 0;
+                                currentRow++;
+                                moved = true;
+                            }
+                            
+                            // Слияние
+                            if (currentRow < gridSize - 1 && board[currentRow + 1][col] === board[currentRow][col]) {
+                                board[currentRow + 1][col] *= 2;
+                                score += board[currentRow + 1][col];
+                                board[currentRow][col] = 0;
+                                moved = true;
+                                updateScore();
+                            }
+                        }
+                    }
+                }
+                
+                return moved;
+            }
+            
+            // Движение влево
+            function moveLeft() {
+                let moved = false;
+                
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 1; col < gridSize; col++) {
+                        if (board[row][col] !== 0) {
+                            let currentCol = col;
+                            
+                            // Перемещение влево
+                            while (currentCol > 0 && board[row][currentCol - 1] === 0) {
+                                board[row][currentCol - 1] = board[row][currentCol];
+                                board[row][currentCol] = 0;
+                                currentCol--;
+                                moved = true;
+                            }
+                            
+                            // Слияние
+                            if (currentCol > 0 && board[row][currentCol - 1] === board[row][currentCol]) {
+                                board[row][currentCol - 1] *= 2;
+                                score += board[row][currentCol - 1];
+                                board[row][currentCol] = 0;
+                                moved = true;
+                                updateScore();
+                            }
+                        }
+                    }
+                }
+                
+                return moved;
+            }
+            
+            // Движение вправо
+            function moveRight() {
+                let moved = false;
+                
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = gridSize - 2; col >= 0; col--) {
+                        if (board[row][col] !== 0) {
+                            let currentCol = col;
+                            
+                            // Перемещение вправо
+                            while (currentCol < gridSize - 1 && board[row][currentCol + 1] === 0) {
+                                board[row][currentCol + 1] = board[row][currentCol];
+                                board[row][currentCol] = 0;
+                                currentCol++;
+                                moved = true;
+                            }
+                            
+                            // Слияние
+                            if (currentCol < gridSize - 1 && board[row][currentCol + 1] === board[row][currentCol]) {
+                                board[row][currentCol + 1] *= 2;
+                                score += board[row][currentCol + 1];
+                                board[row][currentCol] = 0;
+                                moved = true;
+                                updateScore();
+                            }
+                        }
+                    }
+                }
+                
+                return moved;
+            }
+            
+            // Проверка на окончание игры
+            function isGameOver() {
+                // Проверка на наличие пустых ячеек
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        if (board[row][col] === 0) {
+                            return false;
+                        }
+                    }
+                }
+                
+                // Проверка на возможность слияния соседних плиток
+                for (let row = 0; row < gridSize; row++) {
+                    for (let col = 0; col < gridSize; col++) {
+                        const value = board[row][col];
+                        
+                        // Проверка справа
+                        if (col < gridSize - 1 && board[row][col + 1] === value) {
+                            return false;
+                        }
+                        
+                        // Проверка снизу
+                        if (row < gridSize - 1 && board[row + 1][col] === value) {
+                            return false;
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            
+            // Touch events for mobile
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+            
+            document.addEventListener('touchend', (e) => {
+                if (touchStartX === null || touchStartY === null) return;
+                
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                
+                const diffX = touchStartX - touchEndX;
+                const diffY = touchStartY - touchEndY;
+                
+                // Минимальное расстояние для свайпа
+                const minSwipeDistance = 50;
+                
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    // Горизонтальный свайп
+                    if (Math.abs(diffX) > minSwipeDistance) {
+                        if (diffX > 0) {
+                            move('left');
+                        } else {
+                            move('right');
+                        }
+                    }
+                } else {
+                    // Вертикальный свайп
+                    if (Math.abs(diffY) > minSwipeDistance) {
+                        if (diffY > 0) {
+                            move('up');
+                        } else {
+                            move('down');
+                        }
+                    }
+                }
+                
+                touchStartX = null;
+                touchStartY = null;
+            });
+            
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        e.preventDefault();
+                        move('up');
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        e.preventDefault();
+                        move('down');
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        e.preventDefault();
+                        move('left');
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        e.preventDefault();
+                        move('right');
+                        break;
+                }
+            });
+            
+            // Swipe button controls
+            swipeUp.addEventListener('click', () => move('up'));
+            swipeDown.addEventListener('click', () => move('down'));
+            swipeLeft.addEventListener('click', () => move('left'));
+            swipeRight.addEventListener('click', () => move('right'));
+            
+            // Restart button
+            restartButton.addEventListener('click', initGame);
+            
+            // Initialize game
+            initGame();
+        });
+    </script>
 </body>
 </html>
